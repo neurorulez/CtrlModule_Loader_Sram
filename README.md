@@ -1,10 +1,9 @@
-# NeptUNO board test core
+# Cargador de fichero a SRAM desde SD
 
-Includes:
- - Onboard SDRAM test
- - Addon SRAM test (1024x16)
- - SD slot test
- - Joystick 1 & 2 test (2 buttons for now)
- - Sigma delta sound test
- - VGA / RGB PAL & NTSC test
- - Keyboard & mouse tests
+Modulo Creado por NeuroRulez
+Uso el modulo de ZPU de Retro Rambling para el modulo cargador y el core test de McLeod del Zxuno para ver los datos en pantalla.
+
+Cargador a SRAM de un fichero llamado SPECTRUM.ROM
+En pantalla aparecenran los 64Bits leidos a partir de la direccion que le pongamos.
+
+Si te es util, citar es gratis :)
