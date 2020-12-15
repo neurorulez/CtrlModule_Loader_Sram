@@ -200,29 +200,32 @@ module tld_test_placa_neptuno (
 		.ioctl_download(ioctl_dowload),
  );
 
-wire [7:0]data_in;
+
 reg [7:0]data1,data2,data3,data4,data5,data6,data7,data8;
-reg [2:0]cnt;
-always @(posedge ioctl_wr) begin
-if (ioctl_dowload) begin
-	case(cnt)
-   3'b000 : data1 <= data_in;
-	3'b001 : data2 <= data_in;
-	3'b010 : data3 <= data_in;
-	3'b011 : data4 <= data_in;
-	3'b100 : data5 <= data_in;
-	3'b101 : data6 <= data_in;
-	3'b110 : data7 <= data_in;
-	3'b111 : data8 <= data_in;
+reg [2:0]cnt,cnt_r;
+reg [20:0]sram_addr_read;
+always @(posedge clk14) begin
+if (!ioctl_dowload) begin
+sram_addr_read <= 21'h2FFF8 + cnt;
+cnt_r <= cnt;
+	case(cnt_r)
+   3'b000 : begin data1 <= sram_data; end
+	3'b001 : begin data2 <= sram_data; end
+	3'b010 : begin data3 <= sram_data; end
+	3'b011 : begin data4 <= sram_data; end
+	3'b100 : begin data5 <= sram_data; end
+	3'b101 : begin data6 <= sram_data; end
+	3'b110 : begin data7 <= sram_data; end
+	3'b111 : begin data8 <= sram_data; end
 	endcase
 cnt <= cnt + 1;
 end
 end
 
-assign data_in   = sram_data; //  ioctl_dowload ? "00000000" : sram_data;
-assign sram_addr = ioctl_dowload ? ioctl_addr[20:0] : 21'h00000;
+//wire   [7:0]data1 = sram_data; //  ioctl_dowload ? "00000000" : sram_data;
+assign sram_addr = ioctl_dowload ? ioctl_addr[20:0] : sram_addr_read; //21'h2FFFF;
 assign sram_data = ioctl_dowload ? ioctl_data : 21'hZZZZZ; 
-assign sram_we_n = ioctl_dowload ? ioctl_wr : 1'bZ;
+assign sram_we_n = ~ioctl_wr; //ioctl_dowload ? ~ioctl_wr : 1'b1;
 assign testled1 = ~ioctl_dowload;
  
 endmodule
