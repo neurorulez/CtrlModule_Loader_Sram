@@ -1,0 +1,43 @@
+LIBRARY ieee;
+USE ieee.std_logic_1164.all;
+USE ieee.std_logic_unsigned.all;
+
+ENTITY rtc_control IS
+  PORT(
+    clk       : IN     STD_LOGIC;                    --system clock
+    reset_n   : IN     STD_LOGIC;                    --active low reset
+    sda       : INOUT  STD_LOGIC;                    --serial data output of i2c bus
+    scl       : INOUT  STD_LOGIC);                   --serial clock output of i2c bus
+	rtc       : OUT    STD_LOGIC_VECTOR(63 DOWNTO 0) --DAto del RTC Para el amiga
+END ENTITY;
+
+architecture RTL of rtc_control is
+
+ signal   ena       : STD_LOGIC;                    --latch in command
+ signal   addr      : STD_LOGIC_VECTOR(6 DOWNTO 0); --address of target slave
+ signal   rw        : STD_LOGIC;                    --'0' is write, '1' is read
+ signal   data_wr   : STD_LOGIC_VECTOR(7 DOWNTO 0); --data to write to slave
+ signal   busy      : STD_LOGIC;                    --indicates transaction in progress
+ signal   data_rd   : STD_LOGIC_VECTOR(7 DOWNTO 0); --data read from slave
+ signal   ack_error : STD_LOGIC;                    --flag if improper acknowledge from slave
+
+begin
+
+rtc <= X"40" & X"00" & X"72" & X"01" & X"0F" & X"12" & X"11" & X"10";
+
+i2c : entity work.i2c_master
+port map(
+    clk => clk,              --system clock
+    reset_n => reset_n,      --active low reset
+    ena => ena,              --latch in command
+    addr => addr,            --address of target slave
+    rw => rw,                --'0' is write, '1' is read
+    data_wr => data_wr,      --data to write to slave
+    busy => busy,            --indicates transaction in progress
+    data_rd => data_rd,      --data read from slave
+    ack_error => ack_error,  --flag if improper acknowledge from slave
+    sda => sda,              --serial data output of i2c bus
+    scl => scl               --serial clock output of i2c bus
+);
+
+end rtl;

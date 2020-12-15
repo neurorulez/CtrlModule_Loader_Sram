@@ -1,0 +1,341 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.STD_LOGIC_ARITH.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
+
+entity read is
+port ( clk   : in std_logic;               ---clock i/p
+       reset : in std_logic;               ---switch i/p
+	sda   : inout std_logic := '0';     ---i2c data line
+	scl   : out std_logic := '0';       ---i2c clock line
+	do    : out std_logic := '1';       ---uart transmit line
+	l1    : out std_logic := '0');      ---led display
+end read;
+
+architecture Behavioral of read is 
+type states is (start,res,dat,stop,judge,secondstata1,day,data1,final,waity);  --fsm
+signal stata : states := start;
+constant control1 : std_logic_vector(7 downto 0) := x"d0";  --command for write
+signal add : std_logic_vector(7 downto 0) := "00000000";                       --x"01" ;
+constant control2 : std_logic_vector(7 downto 0) := x"d1";	---command for read
+signal stores : std_logic_vector(7 downto 0) := x"00";      --storing of second
+signal storem : std_logic_vector(7 downto 0) := x"00";      --storing of minute
+signal storeh : std_logic_vector(7 downto 0) := x"00";      --storing of hour
+signal storeda : std_logic_vector(7 downto 0):= x"01";      --storing of day
+signal storedate : std_logic_vector(7 downto 0):= x"00";    --storing of date
+signal storemon : std_logic_vector(7 downto 0):= x"00";     --storing of month
+signal storeye : std_logic_vector(7 downto 0):= x"00";      --storing of year
+type arrss is array(0 to 30) of std_logic_vector(7 downto 0);
+signal store1 : arrss :=(x"54",x"49",x"4D",x"45",x"20",x"3a",x"20",x"00",x"00",x"3a",
+x"00",x"00",x"3a",x"00",x"00",x"20",x"00",x"00",x"00",x"20",x"00",x"00",x"3a",x"00",
+x"00",x"3a",x"32",x"30",x"00",x"00",x"0d");		 
+signal ack : std_logic;								 
+begin
+process(reset,clk,sda)
+variable a,i,y,z : integer := 0;
+variable n : integer := 7;
+begin
+if reset = '1' then
+if clk'event and clk = '1' then
+if stata = start then    ----start condition
+if i <= 250 then
+i := i + 1;
+sda <= '1';
+scl <= '1';
+elsif i > 250 and i < 500 then
+i := i + 1;
+sda <= '0';
+scl <= '1';
+elsif i = 500 then
+i := 0;
+sda <= '0';
+scl <= '0';
+stata <= res ;
+end if;
+end if;
+if stata = res then
+if i <= 250 then  ----command and address send state
+i := i + 1;
+scl <= '0';
+if n > -1 then
+if a = 0 then
+sda <= control1(n);   ----write command 
+elsif a = 1 then
+sda <= add(n);        ----address
+elsif a = 2 then
+sda <= control2(n);   ----read command
+end if;
+elsif n = -1 then
+sda <= 'Z';
+ack <= sda;
+end if;
+elsif i > 250 and i <= 500 then
+i := i + 1;
+scl <= '1';
+if n > -1 then
+if a = 0 then
+sda <= control1(n);
+elsif a = 1 then
+sda <= add(n);
+elsif a = 2 then
+sda <= control2(n);
+end if;
+elsif n = -1 then
+sda <= 'Z';
+ack <= sda;
+end if;
+elsif i > 500 and i < 750 then
+i := i + 1;
+scl <= '0';
+if n > -1 then
+if a = 0 then
+sda <= control1(n);
+elsif a = 1 then
+sda <= add(n);
+elsif a = 2 then
+sda <= control2(n);
+end if;
+elsif n = -1 then
+sda <= 'Z';
+ack <= sda;
+end if;
+elsif i = 750 then
+scl <= '0';
+i := 0;
+if n > -1 then
+n := n - 1;
+elsif n = -1 then
+n := 7;
+if a = 0 then
+a := 1;
+stata <= res;
+elsif a = 1 then
+a := 2; 
+stata <= start;
+elsif a = 2 then
+a := 0 ;
+stata <= dat;
+end if;
+----------------------------------------------------------------
+end if;
+end if;
+end if;
+if stata = dat then  ----initial data for all seven register send module
+if i <= 250 then
+i := i + 1;
+scl <= '0';
+if n > -1 then
+sda <= 'Z';
+elsif n = -1 then
+sda <= '1';
+end if;
+elsif i > 250 and i <= 500 then
+i := i + 1;
+scl <= '1';
+if n > -1 then
+sda <= 'Z';
+case add is 
+when x"00" =>
+stores(n) <= sda;
+------------------------------------------------
+when x"01" =>
+storem(n) <= sda;
+when x"02" =>
+storeh(n) <= sda;
+when x"03" =>
+storeda(n) <= sda;
+when x"04" =>
+storedate(n) <= sda;
+when x"05" =>
+storemon(n) <= sda;
+l1 <= '1';
+when x"06" =>
+storeye(n) <= sda;
+when others =>
+null;
+end case;
+----------------------------------------------------
+elsif n = -1 then
+sda <= '1';
+end if;
+elsif i > 500 and i < 750 then
+i := i + 1;
+scl <= '0';
+if n > -1 then
+sda <= 'Z';
+elsif n = -1 then
+sda <= '1';
+end if;
+elsif i = 750 then
+scl <= '0';
+i := 0;
+if n > -1 then
+n := n - 1;
+elsif n = -1 then
+n := 7;
+stata <= stop;
+end if;
+end if;
+end if;
+-------------------------------------------------------------------------
+if stata = stop then   ------stop condition state
+------------------------------------------------------------
+if i <= 250 then
+i := i + 1;
+scl <= '1';
+sda <= '0';
+elsif i > 250 and i <= 500 then
+i := i + 1;
+scl <= '1';
+sda <= '1';
+elsif i > 500 and i < 750 then
+i := i + 1;
+scl <= '0';
+sda <= '0';
+elsif i = 750 then
+scl <= '0';
+sda <= '0';
+i := 0;
+stata <= judge;
+end if;
+end if;
+------------------------------------------------
+if stata = judge then   ----various flow path determination
+case  add is 
+when  x"00" =>                      
+stata <=  start;
+add <= x"01" ;
+when  x"01" =>                           
+stata <= start;
+add <= x"02" ;
+when  x"02" =>                            
+stata <= start;
+add <= x"03" ;
+when  x"03" =>                              
+stata <= start;
+add <= x"04" ;
+when  x"04" =>
+stata <= start;
+add <= x"05";
+when  x"05" =>
+stata  <= start;
+add <= x"06";
+when  x"06" =>
+stata  <= secondstata1;
+add <= x"00";
+when others =>
+null;
+end case;
+end if;
+----------------------------------------------------------------------transmit
+if stata = secondstata1 then    ---conversion of received data from i2c to ascii code
+store1(13) <= "00110" & stores(6 downto 4);
+store1(14) <= "0011" & stores(3 downto 0);
+store1(10) <= "00110" & storem(6 downto 4);
+store1(11) <= "0011" & storem(3 downto 0);
+store1(7) <= "001100" & storeh(5 downto 4);
+store1(8) <= "0011" & storeh(3 downto 0);
+stata <= day ;
+end if;
+if stata = day then     ---converting the received data from i2c to days
+if storeda(2 downto 0) = "001" then
+store1(16) <= "01010011";
+store1(17) <= "01010101";
+store1(18) <= "01001110";
+elsif storeda(2 downto 0) = "010" then
+store1(16) <= "01001101";
+store1(17) <= "01001111";
+store1(18) <= "01001110";
+elsif storeda(2 downto 0) = "011" then
+store1(16) <= "01010100";
+store1(17) <= "01010101";
+store1(18) <= "01000101";
+elsif storeda(2 downto 0) = "100" then
+store1(16) <= "01010111";
+store1(17) <= "01000101";
+store1(18) <= "01000100";
+elsif storeda(2 downto 0) = "101" then
+store1(16) <= "01010100";
+store1(17) <= "01001000";
+store1(18) <= "01010101";
+elsif storeda(2 downto 0) = "110" then
+store1(16) <= "01000110";
+store1(17) <= "01010010";
+store1(18) <= "01001001";
+elsif storeda(2 downto 0) = "111" then
+store1(16) <= "01010010";
+store1(17) <= "01000001";
+store1(18) <= "01010100";
+end if;
+stata <= data1;
+end if;
+-----------------------------------------------------------------------------------
+if stata = data1 then
+store1(20) <= "001100" & storedate(5 downto 4);
+store1(21) <= "0011"    & storedate(3 downto 0);
+store1(23) <= "0011000" & storemon(4);
+store1(24) <= "0011"    & storemon(3 downto 0);
+store1(28) <= "0011"    &  storeye(7 downto 4);
+store1(29) <= "0011"    & storeye(3 downto 0);
+stata <= final;
+end if;
+-----------------------------------------------------------------------------------
+if stata = final then
+scl <= '0';
+sda <= '0';
+if i < 5200 then   ----timing delay for each bit in uart controller
+i := i + 1;
+if z = 0 then
+do <= '0';
+elsif z = 1 then
+do <= store1(y)(0);
+elsif z = 2 then
+do <= store1(y)(1);
+elsif z = 3 then
+do <= store1(y)(2);
+elsif z = 4 then
+do <= store1(y)(3);
+elsif z = 5 then
+do <= store1(y)(4);
+elsif z = 6 then
+do <= store1(y)(5);
+elsif z = 7 then
+do <= store1(y)(6);
+elsif z = 8 then
+do <= store1(y)(7);
+elsif z = 9 then
+do <= '1';
+end if;
+elsif i = 5200 then
+i := 0;
+if z <= 8 then
+z := z + 1;
+elsif z > 8 then
+z := 0 ;
+if y < 30 then       ---14
+y := y + 1;
+elsif y = 30 then
+y := 0;
+stata  <=  waity;                                 --waity;
+end if;
+end if;
+end if;
+end if;
+------------------------------------------------------------------
+if stata = waity then     ---delay before reading repeatedly again the seven registers
+scl <= '0';
+sda <= '0';
+if i < 50000000 then
+i := i + 1;
+elsif i = 50000000 then
+i := 0 ;
+stata  <= start;
+end if;
+end if;
+-----------------------------------------------
+end if;
+end if;
+----------------------------------------------------------
+end process;
+
+end Behavioral;

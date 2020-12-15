@@ -1,0 +1,6 @@
+set_global_assignment -name VHDL_FILE          [file join $::quartus(qip_path) ../CtrlModule/CtrlModule.vhd           ]
+set_global_assignment -name VHDL_FILE          [file join $::quartus(qip_path) ../CtrlModule/interrupt_controller.vhd ]
+set_global_assignment -name VHDL_FILE          [file join $::quartus(qip_path) ../CtrlModule/spi.vhd                  ]
+set_global_assignment -name VHDL_FILE          [file join $::quartus(qip_path) ../CtrlModule/zpu_core_flex.vhd        ]
+set_global_assignment -name VHDL_FILE          [file join $::quartus(qip_path) ../CtrlModule/zpupkg.vhd               ]
+set_global_assignment -name VHDL_FILE          [file join $::quartus(qip_path) ../CtrlModule/Firmware/CtrlROM_ROM.vhd ]

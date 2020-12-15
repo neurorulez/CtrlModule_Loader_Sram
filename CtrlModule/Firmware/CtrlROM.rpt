@@ -1,0 +1,3 @@
+End of code:	00000a88 g       *ABS*	00000000 _romend
+Start of BSS:	00000a88 g       .bss	00000000 __bss_start__
+End of BSS:	00000ce0 g       .bss	00000000 __bss_end__
